@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="순발력 테스트">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>순발력 테스트</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --card: #22223a;
+      --accent: #7c6af7;
+      --accent-light: #a89cf9;
+      --green: #4ade80;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --text: #f0eeff;
+      --muted: #8b8aad;
+      --border: rgba(124, 106, 247, 0.2);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0 8px;
+      flex-shrink: 0;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--accent-light);
+      text-transform: uppercase;
+    }
+
+    .timer-wrap {
+      margin-top: 4px;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .timer {
+      font-family: 'DM Mono', monospace;
+      font-size: 52px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -2px;
+    }
+
+    .timer-unit {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* NEXT HINT */
+    .hint-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 20px;
+      margin: 6px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+
+    .hint-bar.hidden { opacity: 0; pointer-events: none; }
+
+    .hint-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .hint-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--accent-light);
+    }
+
+    /* GRID */
+    .grid-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+
+    .cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 0.08s, background 0.12s, color 0.12s, border-color 0.12s, opacity 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cell:active { transform: scale(0.93); }
+
+    .cell.correct {
+      background: rgba(74, 222, 128, 0.15);
+      color: var(--green);
+      border-color: var(--green);
+    }
+
+    .cell.wrong {
+      background: rgba(248, 113, 113, 0.15);
+      color: var(--red);
+      border-color: var(--red);
+      animation: shake 0.25s ease;
+    }
+
+    .cell.done {
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.06);
+      cursor: default;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    /* RESULT */
+    .result {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .result.show { display: flex; }
+
+    .result-emoji { font-size: 48px; }
+
+    .result-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 64px;
+      font-weight: 500;
+      letter-spacing: -3px;
+      line-height: 1;
+    }
+
+    .result-sec { font-size: 18px; color: var(--muted); }
+
+    .result-grade {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .result-mistakes {
+      font-size: 14px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .result-bars {
+      display: flex;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .bar-block {
+      width: 36px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .bar-block.active { background: var(--accent); border-color: var(--accent); }
+
+    /* BOTTOM */
+    .bottom {
+      padding: 10px 0 4px;
+      flex-shrink: 0;
+    }
+
+    .btn-start {
+      width: 100%;
+      padding: 16px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      border: none;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-start:active { transform: scale(0.97); background: var(--accent-light); }
+
+    .best-record {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .best-record span { color: var(--accent-light); font-family: 'DM Mono', monospace; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="title">순발력 테스트</div>
+    <div class="timer-wrap">
+      <div class="timer" id="timer">00.00</div>
+      <div class="timer-unit">초</div>
+    </div>
+  </div>
+
+  <!-- HINT -->
+  <div class="hint-bar hidden" id="hint-bar">
+    <span class="hint-label">다음</span>
+    <span class="hint-num" id="hint-num">1</span>
+  </div>
+
+  <!-- GRID -->
+  <div class="grid-wrap" id="grid-wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result" id="result">
+    <div class="result-emoji" id="result-emoji">🎉</div>
+    <div>
+      <div class="result-time" id="result-time">00.00</div>
+      <div class="result-sec">초</div>
+    </div>
+    <div class="result-grade" id="result-grade"></div>
+    <div class="result-mistakes" id="result-mistakes"></div>
+    <div class="result-bars" id="result-bars"></div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <button class="btn-start" id="btn-start" onclick="handleBtn()">시작하기</button>
+    <div class="best-record" id="best-record"></div>
+  </div>
+
+</div>
+
+<script>
+  let state = 'idle';
+  let next = 1;
+  let startTime = 0;
+  let timerInterval = null;
+  let mistakes = 0;
+
+  const GRADES = [
+    { max: 20, emoji: '🏆', label: '탁월한 순발력!', color: '#4ade80' },
+    { max: 30, emoji: '🚀', label: '매우 빠름', color: '#a3e635' },
+    { max: 45, emoji: '👍', label: '보통', color: '#fbbf24' },
+    { max: 60, emoji: '🐢', label: '조금 느림', color: '#fb923c' },
+    { max: Infinity, emoji: '💪', label: '다시 도전!', color: '#f87171' },
+  ];
+
+  function getGrade(t) {
+    return GRADES.find(g => t < g.max);
+  }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function buildGrid() {
+    const nums = shuffle([...Array(30)].map((_, i) => i + 1));
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    nums.forEach(n => {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.textContent = n;
+      div.id = 'cell-' + n;
+      div.addEventListener('click', () => handleClick(n, div));
+      grid.appendChild(div);
+    });
+  }
+
+  function handleClick(n, el) {
+    if (state !== 'running') return;
+    if (n === next) {
+      el.className = 'cell correct';
+      setTimeout(() => { el.className = 'cell done'; el.style.pointerEvents = 'none'; }, 280);
+      next++;
+      if (next > 30) { finish(); return; }
+      document.getElementById('hint-num').textContent = next;
+    } else {
+      mistakes++;
+      el.className = 'cell wrong';
+      setTimeout(() => { el.className = 'cell'; }, 280);
+    }
+  }
+
+  function startTimer() {
+    startTime = performance.now();
+    timerInterval = setInterval(() => {
+      const e = (performance.now() - startTime) / 1000;
+      document.getElementById('timer').textContent = e.toFixed(2);
+    }, 50);
+  }
+
+  function finish() {
+    clearInterval(timerInterval);
+    state = 'done';
+    const elapsed = parseFloat(((performance.now() - startTime) / 1000).toFixed(2));
+    document.getElementById('timer').textContent = elapsed.toFixed(2);
+
+    const best = getBest();
+    const isNew = !best || elapsed < best;
+    if (isNew) saveBest(elapsed);
+
+    const grade = getGrade(elapsed);
+
+    // hide grid, show result
+    document.getElementById('grid-wrap').style.display = 'none';
+    document.getElementById('hint-bar').classList.add('hidden');
+    const resultEl = document.getElementById('result');
+    resultEl.classList.add('show');
+
+    document.getElementById('result-emoji').textContent = isNew && best ? '🎉' : grade.emoji;
+    document.getElementById('result-time').textContent = elapsed.toFixed(2);
+    document.getElementById('result-grade').textContent = grade.label;
+    document.getElementById('result-grade').style.color = grade.color;
+    document.getElementById('result-mistakes').textContent = mistakes > 0 ? `실수 ${mistakes}번` : '실수 없음 👏';
+
+    // grade bar
+    const bars = document.getElementById('result-bars');
+    bars.innerHTML = '';
+    const labels = ['20초↓', '30초↓', '45초↓', '60초↓', '60초+'];
+    const gradeIdx = GRADES.indexOf(grade);
+    labels.forEach((lbl, i) => {
+      bars.innerHTML += `<div class="bar-item"><div class="bar-block ${i <= gradeIdx ? 'active' : ''}"></div><span>${lbl}</span></div>`;
+    });
+
+    document.getElementById('btn-start').textContent = '다시 도전';
+    updateBestDisplay();
+  }
+
+  function getBest() {
+    const v = localStorage.getItem('reflex_best');
+    return v ? parseFloat(v) : null;
+  }
+
+  function saveBest(t) {
+    localStorage.setItem('reflex_best', t.toString());
+  }
+
+  function updateBestDisplay() {
+    const best = getBest();
+    const el = document.getElementById('best-record');
+    if (best) {
+      el.innerHTML = `최고 기록: <span>${best.toFixed(2)}초</span>`;
+    } else {
+      el.textContent = '';
+    }
+  }
+
+  function handleBtn() {
+    if (state === 'running') return;
+    state = 'running';
+    next = 1;
+    mistakes = 0;
+
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('grid-wrap').style.display = 'flex';
+    document.getElementById('hint-bar').classList.remove('hidden');
+    document.getElementById('hint-num').textContent = '1';
+    document.getElementById('btn-start').textContent = '진행 중...';
+    document.getElementById('timer').textContent = '00.00';
+
+    buildGrid();
+    startTimer();
+  }
+
+  // init
+  buildGrid();
+  updateBestDisplay();
+</script>
+</body>
+</html>
